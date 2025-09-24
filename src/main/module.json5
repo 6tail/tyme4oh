@@ -1,0 +1,10 @@
+{
+  "module": {
+    "name": "tyme4oh",
+    "type": "har",
+    "deviceTypes": [
+      "default",
+      "tablet"
+    ]
+  }
+}
