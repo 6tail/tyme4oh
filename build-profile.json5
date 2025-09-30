@@ -1,6 +1,11 @@
 {
   "apiType": "stageMode",
   "buildOption": {
+    "packingOptions": {
+      "asset": {
+        "exclude": ["\*\*/.git/\*\*", "\*\*/.DS_Store"]
+      }
+    }
   },
   "targets": [
     {
