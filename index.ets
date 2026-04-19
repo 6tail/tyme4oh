@@ -13,6 +13,9 @@ export enum Gender {
     MAN = 1
 }
 
+/**
+ * @deprecated
+ */
 export enum FestivalType {
     DAY = 0,
     TERM = 1,
@@ -116,6 +119,8 @@ export abstract class DayUnit extends MonthUnit {
 }
 
 export abstract class WeekUnit extends MonthUnit {
+    static NAMES: string[] = ['第一周', '第二周', '第三周', '第四周', '第五周', '第六周'];
+
     protected index: number;
     protected start: number;
 
@@ -542,16 +547,16 @@ export class Duty extends LoopTyme {
 export class Element extends LoopTyme {
     static NAMES: string[] = ['木', '火', '土', '金', '水'];
 
-    protected constructor(indexOrName: number | string) {
-        super(Element.NAMES, indexOrName);
+    protected constructor(names: string[] | null, indexOrName: number | string) {
+        super(names === null ? Element.NAMES : names, indexOrName);
     }
 
     static fromIndex(index: number | string): Element {
-        return new Element(Element.numeric(index, 'element index'));
+        return new Element(null, Element.numeric(index, 'element index'));
     }
 
     static fromName(name: string): Element {
-        return new Element(name);
+        return new Element(null, name);
     }
 
     next(n: number): Element {
@@ -693,12 +698,12 @@ export class Phase extends LoopTyme {
 
     getSolarTime(): SolarTime {
         const t: SolarTime = this.getStartSolarTime();
-        return this.getIndex() % 2 == 1 ? t.next(1) : t;
+        return this.getIndex() % 2 === 1 ? t.next(1) : t;
     }
 
     getSolarDay(): SolarDay {
         const d: SolarDay = this.getStartSolarTime().getSolarDay();
-        return this.getIndex() % 2 == 1 ? d.next(1) : d;
+        return this.getIndex() % 2 === 1 ? d.next(1) : d;
     }
 }
 
@@ -1068,7 +1073,7 @@ export class HeavenStem extends LoopTyme {
 
     getTerrain(earthBranch: EarthBranch): Terrain {
         const earthBranchIndex: number = earthBranch.getIndex();
-        return Terrain.fromIndex([1, 6, 10, 9, 10, 9, 7, 0, 4, 3][this.index] + (YinYang.YANG == this.getYinYang() ? earthBranchIndex : -earthBranchIndex));
+        return Terrain.fromIndex([1, 6, 10, 9, 10, 9, 7, 0, 4, 3][this.index] + (YinYang.YANG === this.getYinYang() ? earthBranchIndex : -earthBranchIndex));
     }
 
     getCombine(): HeavenStem {
@@ -1372,7 +1377,7 @@ export class PlumRainDay extends AbstractCultureDay {
     }
 
     toString(): string {
-        return this.getPlumRain().getIndex() == 0 ? super.toString() : this.culture.getName();
+        return this.getPlumRain().getIndex() === 0 ? super.toString() : this.culture.getName();
     }
 }
 
@@ -1437,14 +1442,14 @@ export class FetusDay extends AbstractCulture {
 
         s += ' ';
 
-        if (Side.IN == this.side) {
+        if (Side.IN === this.side) {
             s += '房内';
         } else {
             s += '外';
         }
 
         const directionName: string = this.direction.getName();
-        if (Side.OUT == this.side && '北南西东'.indexOf(directionName) > -1) {
+        if (Side.OUT === this.side && '北南西东'.indexOf(directionName) > -1) {
             s += '正';
         }
         s += directionName;
@@ -1503,21 +1508,22 @@ export class Phenology extends LoopTyme {
 
     protected year: number;
 
-    protected constructor(year: number, indexOrName: number | string) {
+    protected constructor(year: number | string, indexOrName: number | string) {
         super(Phenology.NAMES, indexOrName);
+        const y: number = Phenology.numeric(year, 'phenology year');
         if (typeof indexOrName === 'number') {
             const size: number = this.getSize();
-            this.year = ~~((year * size + indexOrName) / size);
+            this.year = ~~((y * size + indexOrName) / size);
         } else {
-            this.year = year;
+            this.year = y;
         }
     }
 
-    static fromIndex(year: number, index: number | string): Phenology {
+    static fromIndex(year: number | string, index: number | string): Phenology {
         return new Phenology(year, Phenology.numeric(index, 'phenology index'));
     }
 
-    static fromName(year: number, name: string): Phenology {
+    static fromName(year: number | string, name: string): Phenology {
         return new Phenology(year, name);
     }
 
@@ -1597,6 +1603,7 @@ export class PhenologyDay extends AbstractCultureDay {
 
 export class NineStar extends LoopTyme {
     static NAMES: string[] = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
+    static COLORS: string[] = ['白', '黑', '碧', '绿', '黄', '白', '赤', '白', '紫'];
 
     protected constructor(indexOrName: number | string) {
         super(NineStar.NAMES, indexOrName);
@@ -1615,11 +1622,11 @@ export class NineStar extends LoopTyme {
     }
 
     getColor(): string {
-        return ['白', '黑', '碧', '绿', '黄', '白', '赤', '白', '紫'][this.index];
+        return NineStar.COLORS[this.index];
     }
 
     getElement(): Element {
-        return Element.fromIndex([4, 2, 0, 0, 2, 3, 3, 2, 1][this.index]);
+        return this.getDirection().getElement();
     }
 
     getDipper(): Dipper {
@@ -1865,7 +1872,7 @@ export class LunarMonth extends MonthUnit {
     }
 
     static validate(year: number, month: number): void {
-        if (month == 0 || month > 12 || month < -12) {
+        if (month === 0 || month > 12 || month < -12) {
             throw new Error(`illegal lunar month: ${month}`);
         }
         if (month < 0 && -month != LunarYear.fromYear(year).getLeapMonth()) {
@@ -2029,8 +2036,6 @@ export class LunarMonth extends MonthUnit {
 }
 
 export class LunarWeek extends WeekUnit {
-    static NAMES: string[] = ['第一周', '第二周', '第三周', '第四周', '第五周', '第六周'];
-
     protected constructor(year: number | string, month: number | string, index: number | string, start: number | string) {
         const y: number = SolarWeek.numeric(year, 'lunar year');
         const m: number = SolarWeek.numeric(month, 'lunar month');
@@ -2057,7 +2062,7 @@ export class LunarWeek extends WeekUnit {
     }
 
     getName(): string {
-        return LunarWeek.NAMES[this.getIndex()];
+        return WeekUnit.NAMES[this.getIndex()];
     }
 
     toString(): string {
@@ -2161,7 +2166,7 @@ export class LunarDay extends DayUnit {
         const bMonth: number = target.getMonth();
         if (aMonth !== bMonth) {
             const t: number = Math.abs(bMonth);
-            return aMonth == t || Math.abs(aMonth) < t;
+            return aMonth === t || Math.abs(aMonth) < t;
         }
         return this.getDay() < target.getDay();
     }
@@ -2176,7 +2181,7 @@ export class LunarDay extends DayUnit {
         const bMonth: number = target.getMonth();
         if (aMonth != bMonth) {
             const t: number = Math.abs(aMonth);
-            return t == bMonth || t > Math.abs(bMonth);
+            return t === bMonth || t > Math.abs(bMonth);
         }
         return this.getDay() > target.getDay();
     }
@@ -2212,21 +2217,7 @@ export class LunarDay extends DayUnit {
     }
 
     getNineStar(): NineStar {
-        const d: SolarDay = this.getSolarDay();
-        const y: number = d.getYear();
-        const winterSolstice: SolarDay = SolarTerm.fromIndex(y, 0).getSolarDay();
-        const summerSolstice: SolarDay = SolarTerm.fromIndex(y, 12).getSolarDay();
-        const nextWinterSolstice: SolarDay = SolarTerm.fromIndex(y + 1, 0).getSolarDay();
-        const w: SolarDay = winterSolstice.next(winterSolstice.getLunarDay().getSixtyCycle().stepsCloseTo(0));
-        const s: SolarDay = summerSolstice.next(summerSolstice.getLunarDay().getSixtyCycle().stepsCloseTo(0));
-        const n: SolarDay = nextWinterSolstice.next(nextWinterSolstice.getLunarDay().getSixtyCycle().stepsCloseTo(0));
-        if (d.isBefore(w)) {
-            return NineStar.fromIndex(w.subtract(d) - 1);
-        }
-        if (d.isBefore(s)) {
-            return NineStar.fromIndex(d.subtract(w));
-        }
-        return NineStar.fromIndex(d.isBefore(n) ? n.subtract(d) - 1 : d.subtract(n));
+        return this.getSolarDay().getNineStar();
     }
 
     getJupiterDirection(): Direction {
@@ -2370,7 +2361,7 @@ export class SixtyCycleMonth extends AbstractTyme {
     protected year: SixtyCycleYear;
     protected month: SixtyCycle;
 
-    public constructor(year: SixtyCycleYear, month: SixtyCycle) {
+    constructor(year: SixtyCycleYear, month: SixtyCycle) {
         super();
         this.year = year;
         this.month = month;
@@ -2498,20 +2489,7 @@ export class SixtyCycleDay extends AbstractTyme {
     }
 
     getNineStar(): NineStar {
-        const y: number = this.solarDay.getYear();
-        const winterSolstice: SolarDay = SolarTerm.fromIndex(y, 0).getSolarDay();
-        const summerSolstice: SolarDay = SolarTerm.fromIndex(y, 12).getSolarDay();
-        const nextWinterSolstice: SolarDay = SolarTerm.fromIndex(y + 1, 0).getSolarDay();
-        const w: SolarDay = winterSolstice.next(winterSolstice.getLunarDay().getSixtyCycle().stepsCloseTo(0));
-        const s: SolarDay = summerSolstice.next(summerSolstice.getLunarDay().getSixtyCycle().stepsCloseTo(0));
-        const n: SolarDay = nextWinterSolstice.next(nextWinterSolstice.getLunarDay().getSixtyCycle().stepsCloseTo(0));
-        if (this.solarDay.isBefore(w)) {
-            return NineStar.fromIndex(w.subtract(this.solarDay) - 1);
-        }
-        if (this.solarDay.isBefore(s)) {
-            return NineStar.fromIndex(this.solarDay.subtract(w));
-        }
-        return NineStar.fromIndex(this.solarDay.isBefore(n) ? n.subtract(this.solarDay) - 1 : this.solarDay.subtract(n));
+        return this.solarDay.getNineStar();
     }
 
     getJupiterDirection(): Direction {
@@ -2561,14 +2539,14 @@ export class SixtyCycleHour extends AbstractTyme {
     protected day: SixtyCycleDay;
     protected hour: SixtyCycle;
 
-    public constructor(solarTime: SolarTime) {
+    constructor(solarTime: SolarTime) {
         super();
         const solarYear: number = solarTime.getYear();
         const springSolarTime: SolarTime = SolarTerm.fromIndex(solarYear, 3).getJulianDay().getSolarTime();
         const lunarHour: LunarHour = solarTime.getLunarHour();
         const lunarDay: LunarDay = lunarHour.getLunarDay();
         let lunarYear: LunarYear = lunarDay.getLunarMonth().getLunarYear();
-        if (lunarYear.getYear() == solarYear) {
+        if (lunarYear.getYear() === solarYear) {
             if (solarTime.isBefore(springSolarTime)) {
                 lunarYear = lunarYear.next(-1);
             }
@@ -2794,7 +2772,7 @@ export class LunarHour extends SecondUnit {
         const h: number = this.getHour();
         const m: number = this.getMinute();
         const s: number = this.getSecond();
-        if (n == 0) {
+        if (n === 0) {
             return LunarHour.fromYmdHms(this.getYear(), this.getMonth(), this.getDay(), h, m, s);
         }
         const t: number = h + n * 2;
@@ -3576,9 +3554,9 @@ export class ShouXingUtil {
         } else if (jd >= f2 && jd < f3) {
             const n: number = ShouXingUtil.SB.charCodeAt(Math.floor((jd - f2) / 29.5306));
             d = Math.floor(ShouXingUtil.shuoLow(Math.floor((jd + pc - 2451551) / 29.5306) * ShouXingUtil.PI_2) + 0.5);
-            if (49 === n) {
+            if (n === 49) {
                 d += 1;
-            } else if (50 === n) {
+            } else if (n === 50) {
                 d -= 1;
             }
         }
@@ -3611,9 +3589,9 @@ export class ShouXingUtil {
         } else if (jd >= f2 && jd < f3) {
             d = Math.floor(ShouXingUtil.qiLow(Math.floor((jd + pc - 2451259) / 365.2422 * 24) * Math.PI / 12) + 0.5);
             const n: number = ShouXingUtil.QB.charCodeAt(Math.floor((jd - f2) / 365.2422 * 24));
-            if (49 === n) {
+            if (n === 49) {
                 d += 1;
-            } else if (50 === n) {
+            } else if (n === 50) {
                 d -= 1;
             }
         }
@@ -3659,8 +3637,8 @@ export class SolarTerm extends LoopTyme {
         this.cursoryJulianDay = ShouXingUtil.calcQi(w + 15.2184 * this.index);
     }
 
-    static fromIndex(year: number | string, index: number): SolarTerm {
-        return new SolarTerm(year, index);
+    static fromIndex(year: number | string, index: number | string): SolarTerm {
+        return new SolarTerm(year, SolarTerm.numeric(index, 'solar term index'));
     }
 
     static fromName(year: number | string, name: string): SolarTerm {
@@ -3727,7 +3705,7 @@ export class SolarYear extends YearUnit {
     }
 
     getDayCount(): number {
-        if (1582 === this.getYear()) {
+        if (this.getYear() === 1582) {
             return 355;
         }
         return this.isLeap() ? 366 : 365;
@@ -3926,12 +3904,12 @@ export class SolarMonth extends MonthUnit {
 
     getDayCount(): number {
         const m: number = this.getMonth();
-        if (1582 === this.getYear() && 10 === m) {
+        if (this.getYear() === 1582 && m === 10) {
             return 21;
         }
         let d: number = SolarMonth.DAYS[this.getIndexInYear()];
         //公历闰年2月多一天
-        if (2 === m && this.getSolarYear().isLeap()) {
+        if (m === 2 && this.getSolarYear().isLeap()) {
             d++;
         }
         return d;
@@ -3988,8 +3966,6 @@ export class SolarMonth extends MonthUnit {
 }
 
 export class SolarWeek extends WeekUnit {
-    static NAMES: string[] = ['第一周', '第二周', '第三周', '第四周', '第五周', '第六周'];
-
     protected constructor(year: number | string, month: number | string, index: number | string, start: number | string) {
         const y: number = SolarWeek.numeric(year, 'solar year');
         const m: number = SolarWeek.numeric(month, 'solar month');
@@ -4029,7 +4005,7 @@ export class SolarWeek extends WeekUnit {
     }
 
     getName(): string {
-        return SolarWeek.NAMES[this.getIndex()];
+        return WeekUnit.NAMES[this.getIndex()];
     }
 
     toString(): string {
@@ -4097,7 +4073,7 @@ export class SolarDay extends DayUnit {
         if (day < 1) {
             throw new Error(`illegal solar day: ${year}-${month}-${day}`);
         }
-        if (1582 === year && 10 === month) {
+        if (year === 1582 && month === 10) {
             if ((day > 4 && day < 15) || day > 31) {
                 throw new Error(`illegal solar day: ${year}-${month}-${day}`);
             }
@@ -4164,7 +4140,7 @@ export class SolarDay extends DayUnit {
     getTermDay(): SolarTermDay {
         let y: number = this.getYear();
         let i: number = this.getMonth() * 2;
-        if (i == 24) {
+        if (i === 24) {
             y += 1;
             i = 0;
         }
@@ -4205,7 +4181,7 @@ export class SolarDay extends DayUnit {
         const d1: SolarDay | null = Event.builder().termHeavenStem(12, 6, 30).build().getSolarDay(this.year);
         // 末伏，立秋后第1个庚日
         const d2: SolarDay | null = Event.builder().termHeavenStem(15, 6, 0).build().getSolarDay(this.year);
-        if (null == d0 || null == d1 || null == d2) {
+        if (null === d0 || null === d1 || null === d2) {
             return null;
         }
         if (this.isBefore(d0) || this.isAfter(d2.next(9))) {
@@ -4222,7 +4198,7 @@ export class SolarDay extends DayUnit {
         const start: SolarDay | null = Event.builder().termHeavenStem(11, 2, 0).build().getSolarDay(this.year);
         // 出梅，小暑后第1个未日
         const end: SolarDay | null = Event.builder().termEarthBranch(13, 7, 0).build().getSolarDay(this.year);
-        if (null == start || null == end) {
+        if (null === start || null === end) {
             return null;
         }
         if (this.isBefore(start) || this.isAfter(end)) {
@@ -4259,9 +4235,9 @@ export class SolarDay extends DayUnit {
             typeIndex++;
         }
         let type: HideHeavenStemType;
-        if (typeIndex == 0) {
+        if (typeIndex === 0) {
             type = HideHeavenStemType.RESIDUAL;
-        } else if (typeIndex == 1) {
+        } else if (typeIndex === 1) {
             type = HideHeavenStemType.MIDDLE;
         } else {
             type = HideHeavenStemType.MAIN;
@@ -4335,6 +4311,22 @@ export class SolarDay extends DayUnit {
     getPhase(): Phase {
         return this.getPhaseDay().getPhase();
     }
+
+    getNineStar(): NineStar {
+        const winterSolstice: SolarDay = SolarTerm.fromIndex(this.year, 0).getSolarDay();
+        const summerSolstice: SolarDay = SolarTerm.fromIndex(this.year, 12).getSolarDay();
+        const nextWinterSolstice: SolarDay = SolarTerm.fromIndex(this.year + 1, 0).getSolarDay();
+        const w: SolarDay = winterSolstice.next(winterSolstice.getLunarDay().getSixtyCycle().stepsCloseTo(0));
+        const s: SolarDay = summerSolstice.next(summerSolstice.getLunarDay().getSixtyCycle().stepsCloseTo(0));
+        const n: SolarDay = nextWinterSolstice.next(nextWinterSolstice.getLunarDay().getSixtyCycle().stepsCloseTo(0));
+        if (this.isBefore(w)) {
+            return NineStar.fromIndex(w.subtract(this) - 1);
+        }
+        if (this.isBefore(s)) {
+            return NineStar.fromIndex(this.subtract(w));
+        }
+        return NineStar.fromIndex(this.isBefore(n) ? n.subtract(this) - 1 : this.subtract(n));
+    }
 }
 
 export class SolarTime extends SecondUnit {
@@ -4377,7 +4369,7 @@ export class SolarTime extends SecondUnit {
         const h: number = this.getHour();
         const m: number = this.getMinute();
         const s: number = this.getSecond();
-        if (n == 0) {
+        if (n === 0) {
             return SolarTime.fromYmdHms(this.getYear(), this.getMonth(), this.getDay(), h, m, s);
         }
         let ts: number = s + n;
@@ -4498,7 +4490,7 @@ export class LegalHoliday extends AbstractTyme {
     protected constructor(year: number, month: number, day: number, data: string) {
         super();
         this.day = SolarDay.fromYmd(year, month, day);
-        this.work = 48 === data.charCodeAt(8);
+        this.work = data.charCodeAt(8) === 48;
         this.name = LegalHoliday.NAMES[data.charCodeAt(9) - 48];
     }
 
@@ -4596,79 +4588,87 @@ export class LegalHoliday extends AbstractTyme {
     }
 }
 
-export class SolarFestival extends AbstractTyme {
-    static NAMES: string[] = ['元旦', '妇女节', '植树节', '劳动节', '青年节', '儿童节', '建党节', '建军节', '教师节', '国庆节'];
-    static DATA: string = '@00001011950@01003081950@02003121979@03005011950@04005041950@05006011950@06007011941@07008011933@08009101985@09010011950';
+export abstract class AbstractFestival extends AbstractTyme {
+    /**
+     * @deprecated
+     */
     protected type: FestivalType;
     protected index: number;
-    protected day: SolarDay;
-    protected name: string;
-    protected startYear: number;
+    protected day: DayUnit;
+    protected event: Event;
 
-    protected constructor(type: FestivalType, day: SolarDay, startYear: number, data: string) {
+    protected constructor(type: FestivalType, index: number, event: Event, day: DayUnit) {
         super();
         this.type = type;
+        this.index = index;
+        this.event = event;
         this.day = day;
-        this.startYear = startYear;
-        this.index = parseInt(data.substring(1, 3), 10);
-        this.name = SolarFestival.NAMES[this.index];
-    }
-
-    static fromIndex(year: number, index: number): SolarFestival | null {
-        if (index < 0 || index >= SolarFestival.NAMES.length) {
-            return null;
-        }
-        const is: string = (index < 10 ? '0' : '') + index;
-        const matcher: RegExpExecArray | null = new RegExp(`@${is}\\d+`, 'g').exec(SolarFestival.DATA);
-        if (matcher) {
-            const data: string = matcher[0];
-            const type: number = data.charCodeAt(3) - 48;
-            if (type === 0) {
-                const startYear: number = parseInt(data.substring(8), 10);
-                if (year >= startYear) {
-                    return new SolarFestival(FestivalType.DAY, SolarDay.fromYmd(year, parseInt(data.substring(4, 6), 10), parseInt(data.substring(6, 8), 10)), startYear, data);
-                }
-            }
-        }
-        return null;
-    }
-
-    static fromYmd(year: number, month: number, day: number): SolarFestival | null {
-        const m: string = (month < 10 ? '0' : '') + month;
-        const d: string = (day < 10 ? '0' : '') + day;
-        const matcher: RegExpExecArray | null = new RegExp(`@\\d{2}0${m}${d}\\d+`, 'g').exec(SolarFestival.DATA);
-        if (matcher) {
-            const data: string = matcher[0];
-            const startYear: number = parseInt(data.substring(8), 10);
-            if (year >= startYear) {
-                return new SolarFestival(FestivalType.DAY, SolarDay.fromYmd(year, month, day), startYear, data);
-            }
-        }
-        return null;
     }
 
     getName(): string {
-        return this.name;
+        return this.event.getName();
     }
 
     getIndex(): number {
         return this.index;
     }
 
-    getDay(): SolarDay {
+    getDay(): DayUnit {
         return this.day;
     }
 
+    /**
+     * @deprecated
+     */
     getType(): FestivalType {
         return this.type;
     }
 
-    getStartYear(): number {
-        return this.startYear;
+    toString(): string {
+        return `${this.day} ${this.getName()}`
+    }
+}
+
+export class SolarFestival extends AbstractFestival {
+    static NAMES: string[] = ['元旦', '妇女节', '植树节', '劳动节', '青年节', '儿童节', '建党节', '建军节', '教师节', '国庆节'];
+    static DATA: string = '0VV__0Ux0Xc__0Ux0Xg__0_Q0ZV__0Ux0ZY__0Ux0aV__0Ux0bV__0Uo0cV__0Ug0de__0_V0eV__0Ux';
+
+    protected constructor(type: FestivalType, index: number, event: Event, day: SolarDay) {
+        super(type, index, event, day);
     }
 
-    toString(): string {
-        return `${this.day} ${this.name}`
+    static fromIndex(year: number | string, index: number | string): SolarFestival | null {
+        const y: number = SolarFestival.numeric(year, 'solar festival year');
+        const i: number = SolarFestival.numeric(index, 'solar festival index');
+        if (i < 0 || i >= SolarFestival.NAMES.length) {
+            return null;
+        }
+        const start: number = i * 8;
+        const e: Event = new Event(SolarFestival.NAMES[i], '@' + SolarFestival.DATA.substring(start, start + 8));
+        if (y < e.getStartYear()) {
+            return null;
+        }
+        return new SolarFestival(FestivalType.DAY, i, e, SolarDay.fromYmd(y, e.getValue(2), e.getValue(3)));
+    }
+
+    static fromYmd(year: number | string, month: number | string, day: number | string): SolarFestival | null {
+        const d: SolarDay = SolarDay.fromYmd(year, month, day);
+        for (let i: number = 0, j: number = SolarFestival.NAMES.length; i < j; i++) {
+            const start: number = i * 8;
+            const e: Event = new Event(SolarFestival.NAMES[i], '@' + SolarFestival.DATA.substring(start, start + 8));
+            if (d.getYear() >= e.getStartYear() && d.getMonth() === e.getValue(2) && d.getDay() === e.getValue(3)) {
+                return new SolarFestival(FestivalType.DAY, i, e, d);
+            }
+        }
+        return null;
+    }
+
+    getDay(): SolarDay {
+        return super.getDay() as SolarDay;
+    }
+
+    getStartYear(): number {
+        return this.event.getStartYear();
     }
 
     next(n: number): SolarFestival | null {
@@ -4678,98 +4678,71 @@ export class SolarFestival extends AbstractTyme {
     }
 }
 
-export class LunarFestival extends AbstractTyme {
+export class LunarFestival extends AbstractFestival {
     static NAMES: string[] = ['春节', '元宵节', '龙头节', '上巳节', '清明节', '端午节', '七夕节', '中元节', '中秋节', '重阳节', '冬至节', '腊八节', '除夕'];
-    static DATA: string = '@0000101@0100115@0200202@0300303@04107@0500505@0600707@0700715@0800815@0900909@10124@1101208@122';
-    protected type: FestivalType;
-    protected index: number;
-    protected day: LunarDay;
-    protected name: string;
-    protected solarTerm: SolarTerm | null;
+    static DATA: string = '2VV__0002Vj__0002WW__0002XX__0003b___0002ZZ__0002bb__0002bj__0002cj__0002dd__0003s___0002gc__0002hV_U000';
 
-    protected constructor(type: FestivalType, day: LunarDay, solarTerm: SolarTerm | null, data: string) {
-        super();
-        this.type = type;
-        this.day = day;
-        this.solarTerm = solarTerm;
-        this.index = parseInt(data.substring(1, 3), 10);
-        this.name = LunarFestival.NAMES[this.index];
+    protected constructor(type: FestivalType, index: number, event: Event, day: LunarDay) {
+        super(type, index, event, day);
     }
 
-    static fromIndex(year: number, index: number): LunarFestival | null {
-        if (index < 0 || index >= LunarFestival.NAMES.length) {
+    static fromIndex(year: number | string, index: number | string): LunarFestival | null {
+        const y: number = LunarFestival.numeric(year, 'lunar festival year');
+        const i: number = LunarFestival.numeric(index, 'lunar festival index');
+        if (i < 0 || i >= LunarFestival.NAMES.length) {
             return null;
         }
-        const is: string = (index < 10 ? '0' : '') + index;
-        const matcher: RegExpExecArray | null = new RegExp(`@${is}\\d+`, 'g').exec(LunarFestival.DATA);
-        if (matcher) {
-            const data: string = matcher[0];
-            const type: number = data.charCodeAt(3) - 48;
-            switch (type) {
-                case 0:
-                    return new LunarFestival(FestivalType.DAY, LunarDay.fromYmd(year, parseInt(data.substring(4, 6), 10), parseInt(data.substring(6), 10)), null, data);
-                case 1:
-                    const solarTerm: SolarTerm = SolarTerm.fromIndex(year, parseInt(data.substring(4), 10));
-                    return new LunarFestival(FestivalType.TERM, solarTerm.getSolarDay().getLunarDay(), solarTerm, data);
-                case 2:
-                    return new LunarFestival(FestivalType.EVE, LunarDay.fromYmd(year + 1, 1, 1).next(-1), null, data);
-                default:
-            }
+        const start: number = i * 8;
+        const e: Event = new Event(LunarFestival.NAMES[i], '@' + LunarFestival.DATA.substring(start, start + 8));
+        switch (e.getType()) {
+            case EventType.LUNAR_DAY:
+                const m: number[] = e.getMonth(y);
+                const d: LunarDay = LunarDay.fromYmd(m[0], m[1], e.getValue(3));
+                const offset: number = e.getValue(5);
+                return new LunarFestival(FestivalType.DAY, i, e, offset === 0 ? d : d.next(offset));
+            case EventType.TERM_DAY:
+                return new LunarFestival(FestivalType.TERM, i, e, SolarTerm.fromIndex(y, e.getValue(2)).getSolarDay().getLunarDay());
         }
         return null;
     }
 
-    static fromYmd(year: number, month: number, day: number): LunarFestival | null {
-        const m: string = (month < 10 ? '0' : '') + month;
-        const d: string = (day < 10 ? '0' : '') + day;
-        let matcher: RegExpExecArray | null = new RegExp(`@\\d{2}0${m}${d}`, 'g').exec(LunarFestival.DATA);
-        if (matcher) {
-            return new LunarFestival(FestivalType.DAY, LunarDay.fromYmd(year, month, day), null, matcher[0]);
-        }
-        const lunarDay: LunarDay = LunarDay.fromYmd(year, month, day);
-        const solarDay: SolarDay = lunarDay.getSolarDay();
-        const reg: RegExp = new RegExp(`@\\d{2}1\\d{2}`, 'g');
-        while (matcher = reg.exec(LunarFestival.DATA)) {
-            const data: string = matcher[0];
-            const term: SolarTerm = SolarTerm.fromIndex(year, parseInt(data.substring(4), 10));
-            const termDay: SolarDay = term.getSolarDay();
-            if (termDay.getYear() === solarDay.getYear() && termDay.getMonth() === solarDay.getMonth() && termDay.getDay() === solarDay.getDay()) {
-                return new LunarFestival(FestivalType.TERM, lunarDay, term, data);
-            }
-        }
-        if (Math.abs(month) === 12 && day > 28) {
-            matcher = new RegExp(`@\\d{2}2`, 'g').exec(LunarFestival.DATA);
-            if (matcher) {
-                if (lunarDay.next(1).getYear() != year) {
-                    return new LunarFestival(FestivalType.EVE, lunarDay, null, matcher[0]);
-                }
+    static fromYmd(year: number | string, month: number | string, day: number | string): LunarFestival | null {
+        const d: LunarDay = LunarDay.fromYmd(year, month, day);
+        for (let i: number = 0, j: number = LunarFestival.NAMES.length; i < j; i++) {
+            const start: number = i * 8;
+            const e: Event = new Event(LunarFestival.NAMES[i], '@' + LunarFestival.DATA.substring(start, start + 8));
+            switch (e.getType()) {
+                case EventType.LUNAR_DAY:
+                    const offset: number = e.getValue(5);
+                    if (offset === 0) {
+                        if (d.getMonth() === e.getValue(2) && d.getDay() === e.getValue(3)) {
+                            return new LunarFestival(FestivalType.DAY, i, e, d);
+                        }
+                    } else {
+                        const m: number[] = e.getMonth(d.getYear());
+                        const next: LunarDay = d.next(-offset);
+                        if (next.getYear() === m[0] && next.getMonth() === m[1] && next.getDay() === e.getValue(3)) {
+                            return new LunarFestival(FestivalType.DAY, i, e, d);
+                        }
+                    }
+                    break;
+                case EventType.TERM_DAY:
+                    const term: SolarTermDay = d.getSolarDay().getTermDay();
+                    if (term.getDayIndex() === 0 && term.getSolarTerm().getIndex() === e.getValue(2) % 24) {
+                        return new LunarFestival(FestivalType.TERM, i, e, d);
+                    }
             }
         }
         return null;
-    }
-
-    getName(): string {
-        return this.name;
-    }
-
-    getIndex(): number {
-        return this.index;
     }
 
     getDay(): LunarDay {
-        return this.day;
-    }
-
-    getType(): FestivalType {
-        return this.type;
+        return super.getDay() as LunarDay;
     }
 
     getSolarTerm(): SolarTerm | null {
-        return this.solarTerm;
-    }
-
-    toString(): string {
-        return `${this.day} ${this.name}`
+        const t: SolarTermDay = this.getDay().getSolarDay().getTermDay();
+        return t.getDayIndex() === 0 ? t.getSolarTerm() : null;
     }
 
     next(n: number): LunarFestival {
@@ -4852,7 +4825,7 @@ export class EightChar extends AbstractCulture {
         // 时辰地支转时刻
         const h: number = this.hour.getEarthBranch().getIndex() * 2;
         // 兼容子时多流派
-        const hours: number[] = h == 0 ? [0, 23] : [h];
+        const hours: number[] = h === 0 ? [0, 23] : [h];
         const baseYear: number = startYear - 1;
         if (baseYear > y) {
             y += 60 * ~~(Math.ceil((baseYear - y) / 60.0));
@@ -4877,13 +4850,13 @@ export class EightChar extends AbstractCulture {
                     let mi: number = 0;
                     let s: number = 0;
                     const hour: number = hours[i];
-                    if (d == 0 && hour == solarTime.getHour()) {
+                    if (d === 0 && hour === solarTime.getHour()) {
                         // 如果正好是节令当天，且小时和节令的小时数相等的极端情况，把分钟和秒钟带上
                         mi = solarTime.getMinute();
                         s = solarTime.getSecond();
                     }
                     let time: SolarTime = SolarTime.fromYmdHms(solarDay.getYear(), solarDay.getMonth(), solarDay.getDay(), hour, mi, s);
-                    if (d == 30) {
+                    if (d === 30) {
                         time = time.next(-3600);
                     }
                     // 验证一下
@@ -5022,8 +4995,8 @@ export class LunarSect1ChildLimitProvider extends AbstractChildLimitProvider {
             end = birthTime;
             start = termTime;
         }
-        const endTimeZhiIndex: number = (end.getHour() == 23) ? 11 : end.getLunarHour().getIndexInDay();
-        const startTimeZhiIndex: number = (start.getHour() == 23) ? 11 : start.getLunarHour().getIndexInDay();
+        const endTimeZhiIndex: number = (end.getHour() === 23) ? 11 : end.getLunarHour().getIndexInDay();
+        const startTimeZhiIndex: number = (start.getHour() === 23) ? 11 : start.getLunarHour().getIndexInDay();
         // 时辰差
         let hourDiff: number = endTimeZhiIndex - startTimeZhiIndex;
         // 天数差
@@ -5067,8 +5040,8 @@ export class ChildLimit {
         this.gender = gender;
         this.eightChar = birthTime.getLunarHour().getEightChar();
         // 阳男阴女顺推，阴男阳女逆推
-        const yang: boolean = YinYang.YANG == this.eightChar.getYear().getHeavenStem().getYinYang();
-        const man: boolean = Gender.MAN == gender;
+        const yang: boolean = YinYang.YANG === this.eightChar.getYear().getHeavenStem().getYinYang();
+        const man: boolean = Gender.MAN === gender;
         this.forward = (yang && man) || (!yang && !man);
         let term: SolarTerm = birthTime.getTerm();
         if (!term.isJie()) {
@@ -5348,8 +5321,10 @@ export class KitchenGodSteed extends AbstractCulture {
 }
 
 export class RabByungElement extends Element {
+    static NAMES: string[] = ['木', '火', '土', '铁', '水'];
+
     protected constructor(indexOrName: number | string) {
-        super((typeof indexOrName === 'number') ? indexOrName : (indexOrName + '').replace('铁', '金'));
+        super(RabByungElement.NAMES, indexOrName);
     }
 
     static fromIndex(index: number | string): RabByungElement {
@@ -5378,10 +5353,6 @@ export class RabByungElement extends Element {
 
     getRestrained(): RabByungElement {
         return this.next(-2);
-    }
-
-    getName(): string {
-        return super.getName().replace('金', '铁');
     }
 }
 
@@ -5490,7 +5461,7 @@ export class RabByungYear extends AbstractTyme {
             }
             t = 1 - t;
         }
-        return y == currentYear ? m : 0;
+        return y === currentYear ? m : 0;
     }
 
     getSolarYear(): SolarYear {
@@ -5521,7 +5492,6 @@ export class RabByungYear extends AbstractTyme {
 
 export class RabByungMonth extends MonthUnit {
     static DAYS: Record<string, number[]> = {};
-    static NAMES: string[] = ['正月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
     static ALIAS: string[] = ['神变月', '苦行月', '具香月', '萨嘎月', '作净月', '明净月', '具醉月', '具贤月', '天降月', '持众月', '庄严月', '满意月'];
 
     protected static isInit: boolean = false;
@@ -5553,7 +5523,7 @@ export class RabByungMonth extends MonthUnit {
         RabByungMonth.isInit = true;
     }
 
-    public constructor(year: number | string, month: number | string) {
+    constructor(year: number | string, month: number | string) {
         RabByungMonth.init();
         const y: number = RabByungMonth.numeric(year, 'rab-byung year');
         const m: number = RabByungMonth.numeric(month, 'rab-byung month');
@@ -5563,7 +5533,7 @@ export class RabByungMonth extends MonthUnit {
     }
 
     static validate(year: number, month: number): void {
-        if (month == 0 || month > 12 || month < -12) {
+        if (month === 0 || month > 12 || month < -12) {
             throw new Error(`illegal rab-byung month: ${month}`);
         }
         if (year < 1950 || year > 2050) {
@@ -5571,7 +5541,7 @@ export class RabByungMonth extends MonthUnit {
         }
         const leap: boolean = month < 0;
         const m: number = Math.abs(month);
-        if (year == 1950 && m < 12) {
+        if (year === 1950 && m < 12) {
             throw new Error(`month ${month} must be 12 in rab-byung year ${year}`);
         }
         if (leap && m != RabByungYear.fromYear(year).getLeapMonth()) {
@@ -5613,7 +5583,7 @@ export class RabByungMonth extends MonthUnit {
     }
 
     getName(): string {
-        return (this.leap ? '闰' : '') + RabByungMonth.NAMES[this.month - 1];
+        return (this.leap ? '闰' : '') + LunarMonth.NAMES[this.month - 1];
     }
 
     getAlias(): string {
@@ -5722,7 +5692,7 @@ export class RabByungDay extends DayUnit {
     }
 
     static validate(year: number, month: number, day: number): void {
-        if (day == 0 || day < -30 || day > 30) {
+        if (day === 0 || day < -30 || day > 30) {
             throw new Error(`illegal day ${day} in ${month}`);
         }
         const m: RabByungMonth = RabByungMonth.fromYm(year, month);
@@ -5758,7 +5728,7 @@ export class RabByungDay extends DayUnit {
                     day++;
                 }
             } else if (d > 0) {
-                if (day == d + 1) {
+                if (day === d + 1) {
                     day = -d;
                     break;
                 } else if (day > d + 1) {
@@ -5852,8 +5822,26 @@ export class Event extends AbstractCulture {
         return matcher ? new Event(name, matcher[1]) : null;
     }
 
+    protected getCharIndex(index: number): number {
+        return EventManager.CHARS.indexOf(this.data.charAt(index));
+    }
+
+    getValue(index: number): number {
+        return this.getCharIndex(index) - 31;
+    }
+
+    getMonth(year: number): number[] {
+        let y: number = year;
+        let m: number = this.getValue(2);
+        if (m > 12) {
+            m = 1;
+            y += 1;
+        }
+        return [y, m];
+    }
+
     getType(): EventType {
-        switch (EventManager.CHARS.indexOf(this.data.charAt(1))) {
+        switch (this.getCharIndex(1)) {
             case 1: return EventType.SOLAR_WEEK;
             case 2: return EventType.LUNAR_DAY;
             case 3: return EventType.TERM_DAY;
@@ -5875,7 +5863,7 @@ export class Event extends AbstractCulture {
         let n: number = 0;
         const size: number = EventManager.CHARS.length;
         for (let i: number = 0; i < 3; i++) {
-            n = n * size + EventManager.CHARS.indexOf(this.data.charAt(6 + i));
+            n = n * size + this.getCharIndex(6 + i);
         }
         return n;
     }
@@ -5928,26 +5916,22 @@ export class Event extends AbstractCulture {
                 d = this.getSolarDayByTermEarthBranch(year);
                 break;
         }
-        if (null == d) {
+        if (null === d) {
             return null;
         }
-        const offset: number = EventManager.CHARS.indexOf(this.data.charAt(5)) - 31;
-        return 0 == offset ? d : d.next(offset);
+        const offset: number = this.getValue(5);
+        return offset === 0 ? d : d.next(offset);
     }
 
     getSolarDayBySolarDay(year: number): SolarDay | null {
-        let y: number = year;
-        let m: number = EventManager.CHARS.indexOf(this.data.charAt(2)) - 31;
-        if (m > 12) {
-            m = 1;
-            y += 1;
-        }
-        const d: number = EventManager.CHARS.indexOf(this.data.charAt(3)) - 31;
-        const delay: number = EventManager.CHARS.indexOf(this.data.charAt(4)) - 31;
-        const month: SolarMonth = SolarMonth.fromYm(y, m);
-        const lastDay: number = month.getDayCount();
+        const month: number[] = this.getMonth(year);
+        const y: number = month[0];
+        const m: number = month[1];
+        const d: number = this.getValue(3);
+        const delay: number = this.getValue(4);
+        const lastDay: number = SolarMonth.fromYm(y, m).getDayCount();
         if (d > lastDay) {
-            if (0 == delay) {
+            if (delay === 0) {
                 return null;
             }
             return delay < 0 ? SolarDay.fromYmd(y, m, d + delay) : SolarDay.fromYmd(y, m, lastDay).next(delay);
@@ -5956,18 +5940,14 @@ export class Event extends AbstractCulture {
     }
 
     getSolarDayByLunarDay(year: number): SolarDay | null {
-        let y: number = year;
-        let m: number = EventManager.CHARS.indexOf(this.data.charAt(2)) - 31;
-        if (m > 12) {
-            m = 1;
-            y += 1;
-        }
-        const d: number = EventManager.CHARS.indexOf(this.data.charAt(3)) - 31;
-        const delay: number = EventManager.CHARS.indexOf(this.data.charAt(4)) - 31;
-        const month: LunarMonth = LunarMonth.fromYm(y, m);
-        const lastDay: number = month.getDayCount();
+        const month: number[] = this.getMonth(year);
+        const y: number = month[0];
+        const m: number = month[1];
+        const d: number = this.getValue(3);
+        const delay: number = this.getValue(4);
+        const lastDay: number = LunarMonth.fromYm(y, m).getDayCount();
         if (d > lastDay) {
-            if (0 == delay) {
+            if (delay === 0) {
                 return null;
             }
             return delay < 0 ? LunarDay.fromYmd(y, m, d + delay).getSolarDay() : LunarDay.fromYmd(y, m, lastDay).getSolarDay().next(delay);
@@ -5977,13 +5957,13 @@ export class Event extends AbstractCulture {
 
     getSolarDayByWeek(year: number): SolarDay | null {
         // 第几个星期
-        const n: number = EventManager.CHARS.indexOf(this.data.charAt(3)) - 31;
+        const n: number = this.getValue(3);
         if (n === 0) {
             return null;
         }
-        const m: SolarMonth = SolarMonth.fromYm(year, EventManager.CHARS.indexOf(this.data.charAt(2)) - 31);
+        const m: SolarMonth = SolarMonth.fromYm(year, this.getValue(2));
         // 星期几
-        const w: number = EventManager.CHARS.indexOf(this.data.charAt(4)) - 31;
+        const w: number = this.getValue(4);
         if (n > 0) {
             // 当月第1天
             const d: SolarDay = m.getFirstDay();
@@ -5997,19 +5977,19 @@ export class Event extends AbstractCulture {
     }
 
     getSolarDayByTerm(year: number): SolarDay {
-        const offset: number = EventManager.CHARS.indexOf(this.data.charAt(4)) - 31;
-        const d: SolarDay = SolarTerm.fromIndex(year, EventManager.CHARS.indexOf(this.data.charAt(2)) - 31).getSolarDay();
-        return 0 == offset ? d : d.next(offset);
+        const d: SolarDay = SolarTerm.fromIndex(year, this.getValue(2)).getSolarDay();
+        const offset: number = this.getValue(4);
+        return offset === 0 ? d : d.next(offset);
     }
 
     getSolarDayByTermHeavenStem(year: number): SolarDay | null {
         const d: SolarDay = this.getSolarDayByTerm(year);
-        return d.next(d.getLunarDay().getSixtyCycle().getHeavenStem().stepsTo(EventManager.CHARS.indexOf(this.data.charAt(3)) - 31));
+        return d.next(d.getLunarDay().getSixtyCycle().getHeavenStem().stepsTo(this.getValue(3)));
     }
 
     getSolarDayByTermEarthBranch(year: number): SolarDay | null {
         const d: SolarDay = this.getSolarDayByTerm(year);
-        return d.next(d.getLunarDay().getSixtyCycle().getEarthBranch().stepsTo(EventManager.CHARS.indexOf(this.data.charAt(3)) - 31));
+        return d.next(d.getLunarDay().getSixtyCycle().getEarthBranch().stepsTo(this.getValue(3)));
     }
 }
 
@@ -6027,7 +6007,16 @@ class EventBuilder {
         return this;
     }
 
-    static encodeType(t: EventType): string {
+    protected getChar(index: number): string {
+        return EventManager.CHARS.charAt(index);
+    }
+
+    protected setValue(index: number, n: number): EventBuilder {
+        this.data[index] = this.getChar(31 + n);
+        return this;
+    }
+
+    protected encodeType(t: EventType): string {
         let n: number = 0;
         switch (t) {
             case EventType.SOLAR_WEEK:
@@ -6046,15 +6035,12 @@ class EventBuilder {
                 n = 5;
                 break;
         }
-        return EventManager.CHARS.charAt(n);
+        return this.getChar(n);
     }
 
     protected content(t: EventType, a: number, b: number, c: number): EventBuilder {
-        this.data[1] = EventBuilder.encodeType(t);
-        this.data[2] = EventManager.CHARS.charAt(31 + a);
-        this.data[3] = EventManager.CHARS.charAt(31 + b);
-        this.data[4] = EventManager.CHARS.charAt(31 + c);
-        return this;
+        this.data[1] = this.encodeType(t);
+        return this.setValue(2, a).setValue(3, b).setValue(4, c);
     }
 
     solarDay(solarMonth: number, solarDay: number, delayDays: number): EventBuilder {
@@ -6085,15 +6071,14 @@ class EventBuilder {
         const size: number = EventManager.CHARS.length;
         let n: number = year;
         for (let i: number = 0; i < 3; i++) {
-            this.data[8 - i] = EventManager.CHARS.charAt(n % size);
+            this.data[8 - i] = this.getChar(n % size);
             n /= size;
         }
         return this;
     }
 
     offset(days: number): EventBuilder {
-        this.data[5] = EventManager.CHARS.charAt(31 + days);
-        return this;
+        return this.setValue(5, days);
     }
 
     build(): Event {
